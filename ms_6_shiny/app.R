@@ -8,6 +8,49 @@
 #
 
 library(shiny)
+library(tidyverse)
+library(ggplot2)
+library(ggthemes)
+library(readxl)
+library(readr)
+library(janitor)
+
+reg_2017 <- read.csv("2017-01-01.csv", skip = 4) %>% 
+    clean_names() %>% 
+    filter(date_period == "43847") %>% 
+    head(15) %>% 
+    mutate(year = 2017) %>% 
+    select(county, year, democratic, republican)
+
+reg_2018 <- read.csv("2018-01-01.csv", skip = 4) %>% 
+    clean_names() %>% 
+    filter(date_period == "43848") %>% 
+    head(15) %>% 
+    mutate(year = 2018) %>% 
+    select(county, year, democratic, republican)
+
+reg_2019 <- read.csv("2019-01-01.csv", skip = 5) %>% 
+    clean_names() %>% 
+    filter(date_period == "43849") %>% 
+    head(15) %>% 
+    mutate(year = 2019) %>% 
+    select(county, year, democratic, republican)
+
+reg_2020 <- read.csv("2020-01-21.csv", skip = 5) %>% 
+    clean_names() %>% 
+    filter(date_period == "43850") %>% 
+    head(15) %>% 
+    mutate(year = 2020) %>% 
+    select(county, year, democratic, republican)
+
+reg_2017_to_2020 <- reg_2017 %>% 
+    full_join(reg_2018) %>% 
+    full_join(reg_2019) %>% 
+    full_join(reg_2020) %>% 
+    arrange(county) %>% 
+    pivot_longer(names_to = "party",
+                 values_to = "registration",
+                 cols = c(democratic:republican))
 
 reg_plot <- function(x){
     reg_2017_to_2020 %>% 
@@ -18,17 +61,15 @@ reg_plot <- function(x){
         labs(x = "Year",
              y = "Registration",
              title = "Party Registration Figures",
+             subtitle = "For Selected Arizona County",
              caption = "Source: Arizona Secretary of State") +
         theme_fivethirtyeight()
 }
 
-# Define UI for application that draws a histogram
 ui <- fluidPage(
 
-    # Application title
     titlePanel("Arizona Voter Registration Figures"),
 
-    # Sidebar with a slider input for number of bins 
     sidebarLayout(
         sidebarPanel(
             selectInput("county",
@@ -50,28 +91,19 @@ ui <- fluidPage(
                         selected = "Apache")
         ),
 
-        # Show a plot of the generated distribution
         mainPanel(
-           plotOutput("reg_plot")
+           plotOutput("selected_county")
         )
     )
 )
 
-# Define server logic required to draw a histogram
 server <- function(input, output) {
 
-    output$plot <- renderPlot({
-        # generate bins based on input$bins from ui.R
+    output$selected_county <- renderPlot({
+       
+        reg_plot(input$county)
         
-        data <- reg_plot(input$county)
-        
-        #x    <- faithful[, 2]
-        #bins <- seq(min(x), max(x), length.out = input$bins + 1)
-
-        # draw the histogram with the specified number of bins
-        #hist(x, breaks = bins, col = 'darkgray', border = 'white')
     })
 }
 
-# Run the application 
 shinyApp(ui = ui, server = server)
